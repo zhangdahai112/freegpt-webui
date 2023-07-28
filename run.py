@@ -1,3 +1,4 @@
+import os
 import secrets
 
 from server.bp import bp
@@ -43,6 +44,7 @@ if __name__ == '__main__':
     app.register_blueprint(bp, url_prefix=url_prefix)
 
     # Run the Flask server
-    print(f"Running on {site_config['port']}{url_prefix}")
+    print(f"Running on {os.getenv('PORT', default=5000)}{url_prefix}")
+    site_config['port'] = os.getenv('PORT', default=5000)
     app.run(**site_config)
-    print(f"Closing port {site_config['port']}")
+    print(f"Closing port {os.getenv('PORT', default=5000)}")
