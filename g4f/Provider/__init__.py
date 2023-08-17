@@ -2,9 +2,11 @@ from . import Provider
 from .Providers import (
     Aichat,
     Ails,
+    AiService,
     Bard,
     Better,
     Bing,
+    ChatFree,
     ChatgptAi,
     ChatgptLogin,
     ChatgptLogin,
@@ -27,7 +29,8 @@ from .Providers import (
     Xiaor,
     Yqcloud,
     You,
-    Zeabur
+    Zeabur,
+    Wewordle
 )
 
 Palm = Bard
