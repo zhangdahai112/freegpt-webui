@@ -4,7 +4,7 @@ from g4f import ChatCompletion
 from flask import request, Response, stream_with_context
 from requests import get
 from server.config import special_instructions
-
+from duckduckgo_search import ddg
 
 class Backend_Api:
     def __init__(self, bp, config: dict) -> None:
@@ -33,7 +33,12 @@ class Backend_Api:
             jailbreak = request.json['jailbreak']
             model = request.json['model']
             messages = build_messages(jailbreak)
-
+            question = messages[len(messages) -1]['content']
+            sources = get_sources(question)
+            prompt = f"""请尝试通过常识回答下面问题:```{question}```
+            如果不能回答请参考网络最新参考资料做整合并回答，资料如下：```{sources}```
+            """
+            messages[len(messages) -1]['content'] = prompt
             # Generate response
             response = ChatCompletion.create(
                 model=model,
@@ -53,6 +58,22 @@ class Backend_Api:
                 "error": f"an error occurred {str(e)}"
             }, 400
 
+def get_sources(question):
+    if len(question) == 0:
+        return ""
+    else :
+        return search(question)
+def search(q):  # put application's code here
+    keywords = q
+    max_results = 3
+    results = ddg(keywords, region='wt-wt', max_results=max_results)
+    r = ""
+    if len(results) > 0:
+        for s in results:
+            r = r + ";" + s['body']
+    else:
+        r = ""
+    return r
 
 def build_messages(jailbreak):
     """  
