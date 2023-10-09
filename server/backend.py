@@ -34,7 +34,8 @@ class Backend_Api:
 
         try:
             jailbreak = request.json['jailbreak']
-            model = request.json['model']
+            # model = request.json['model']
+            model = 'gpt-3.5-turbo-16k'
             messages = build_messages(jailbreak)
             question = messages[len(messages) - 1]['content']
             prompt = f"""基于用户的提问:```{question}```如果你回答这个问题需要从网络获取信息请返回true，如果你不需要从网络获取信息就能回答请返回false"""
