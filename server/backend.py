@@ -1,10 +1,13 @@
 import re
 from datetime import datetime
-from g4f import ChatCompletion
+
+from duckduckgo_search import ddg
 from flask import request, Response, stream_with_context
 from requests import get
+
+from g4f import ChatCompletion
 from server.config import special_instructions
-from duckduckgo_search import ddg
+
 
 class Backend_Api:
     def __init__(self, bp, config: dict) -> None:
@@ -33,12 +36,17 @@ class Backend_Api:
             jailbreak = request.json['jailbreak']
             model = request.json['model']
             messages = build_messages(jailbreak)
-            question = messages[len(messages) -1]['content']
-            sources = get_sources(question)
-            prompt = f"""请尝试通过常识回答下面问题:```{question}```
-            如果不能回答请参考网络最新参考资料做整合并回答，资料如下：```{sources}```
-            """
-            messages[len(messages) -1]['content'] = prompt
+            question = messages[len(messages) - 1]['content']
+            prompt = f"""基于用户的提问:```{question}```如果你回答这个问题需要从网络获取信息请返回true，如果你不需要从网络获取信息就能回答请返回false"""
+            prompt = ChatCompletion.create(model=model,
+                                           chatId=conversation_id,
+                                           messages=[{"role": "user", "content": prompt}])
+            if 'true' in prompt:
+                prompt = f"""
+                    用户的问题: ```{question}```, 从网络上搜索的信息: ```{get_sources(question)}```，请回答
+                    """
+                messages[len(messages) - 1]['content'] = prompt
+
             # Generate response
             response = ChatCompletion.create(
                 model=model,
@@ -50,21 +58,26 @@ class Backend_Api:
 
         except Exception as e:
             print(e)
-            print(e.__traceback__.tb_next)
+        print(e.__traceback__.tb_next)
 
-            return {
-                '_action': '_ask',
-                'success': False,
-                "error": f"an error occurred {str(e)}"
-            }, 400
+        return {
+            '_action': '_ask',
+            'success': False,
+            "error": f"an error occurred {str(e)}"
+        }, 400
+
 
 def get_sources(question):
     if len(question) == 0:
         return ""
-    else :
+    else:
         return search(question)
+
+
 def search(q):  # put application's code here
+
     keywords = q
+
     max_results = 3
     results = ddg(keywords, region='wt-wt', max_results=max_results)
     r = ""
@@ -75,13 +88,27 @@ def search(q):  # put application's code here
         r = ""
     return r
 
-def build_messages(jailbreak):
-    """  
-    Build the messages for the conversation.  
 
-    :param jailbreak: Jailbreak instruction string  
-    :return: List of messages for the conversation  
+def build_messages(jailbreak):
     """
+
+
+    Build
+    the
+    messages
+    for the conversation.
+
+    :param
+    jailbreak: Jailbreak
+    instruction
+    string
+    :return: List
+    of
+    messages
+    for the conversation
+        """
+
+
     _conversation = request.json['meta']['content']['conversation']
     internet_access = request.json['meta']['content']['internet_access']
     prompt = request.json['meta']['content']['parts'][0]
@@ -111,12 +138,23 @@ def build_messages(jailbreak):
 
 
 def fetch_search_results(query):
-    """  
-    Fetch search results for a given query.  
-
-    :param query: Search query string  
-    :return: List of search results  
     """
+Fetch
+search
+results
+for a given query.
+
+:param
+query: Search
+query
+string
+:return: List
+of
+search
+results
+"""
+
+
     search = get('https://ddg-api.herokuapp.com/search',
                  params={
                      'query': query,
@@ -136,12 +174,27 @@ def fetch_search_results(query):
 
 def generate_stream(response, jailbreak):
     """
-    Generate the conversation stream.
+    Generate
+    the
+    conversation
+    stream.
 
-    :param response: Response object from ChatCompletion.create
-    :param jailbreak: Jailbreak instruction string
-    :return: Generator object yielding messages in the conversation
+    :param
+    response: Response
+    object
+    from ChatCompletion.create
+    :param
+    jailbreak: Jailbreak
+    instruction
+    string
+    :return: Generator
+    object
+    yielding
+    messages in the
+    conversation
     """
+
+
     if getJailbreak(jailbreak):
         response_jailbreak = ''
         jailbroken_checked = False
@@ -160,32 +213,68 @@ def generate_stream(response, jailbreak):
 
 
 def response_jailbroken_success(response: str) -> bool:
-    """Check if the response has been jailbroken.
-
-    :param response: Response string
-    :return: Boolean indicating if the response has been jailbroken
     """
+    Check if the
+    response
+    has
+    been
+    jailbroken.
+
+    :param
+    response: Response
+    string
+    :return: Boolean
+    indicating if the
+    response
+    has
+    been
+    jailbroken
+    """
+
+
     act_match = re.search(r'ACT:', response, flags=re.DOTALL)
     return bool(act_match)
 
 
 def response_jailbroken_failed(response):
     """
-    Check if the response has not been jailbroken.
+    Check if the
+    response
+    has
+    not been
+    jailbroken.
 
-    :param response: Response string
-    :return: Boolean indicating if the response has not been jailbroken
+    :param
+    response: Response
+    string
+    :return: Boolean
+    indicating if the
+    response
+    has
+    not been
+    jailbroken
     """
+
+
     return False if len(response) < 4 else not (response.startswith("GPT:") or response.startswith("ACT:"))
 
 
 def getJailbreak(jailbreak):
-    """  
-    Check if jailbreak instructions are provided.  
-
-    :param jailbreak: Jailbreak instruction string  
-    :return: Jailbreak instructions if provided, otherwise None  
     """
+    Check if jailbreak
+    instructions
+    are
+    provided.
+
+    :param
+    jailbreak: Jailbreak
+    instruction
+    string
+    :return: Jailbreak
+    instructions if provided, otherwise
+    None
+    """
+
     if jailbreak != "default":
         special_instructions[jailbreak][0]['content'] += special_instructions['two_responses_instruction']
         if jailbreak in special_instructions:
